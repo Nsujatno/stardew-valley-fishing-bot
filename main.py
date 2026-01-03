@@ -33,12 +33,14 @@ print(WATCH_BOX)
 
 CONFIDENCE = 0.7
 BAR_CONFIDENCE = 0.9
+FISH_CONFIDENCE = 0.7
 cast = True
 
 sct = mss.mss()
 exclamation = cv2.imread('images/exclamation.png', cv2.IMREAD_GRAYSCALE)
 top_of_bar = cv2.imread('images/top_of_bar.png', cv2.IMREAD_GRAYSCALE)
 bottom_of_bar = cv2.imread('images/bottom_of_bar.png', cv2.IMREAD_GRAYSCALE)
+fish = cv2.imread('images/fish.png', cv2.IMREAD_GRAYSCALE)
 
 def cast_rod():
   print("Casting rod...")
@@ -60,8 +62,8 @@ def watch_for_bite():
       return True
 
     time.sleep(0.01)
-  
-def watch_for_bar():
+
+def watch_for_fish_and_bar():
   while True:
     img = np.array(sct.grab(BAR_BOX))
     frame = img[:, :, :3]
@@ -69,14 +71,24 @@ def watch_for_bar():
 
     res = cv2.matchTemplate(gray, top_of_bar, cv2.TM_CCOEFF_NORMED)
     res2 = cv2.matchTemplate(gray, bottom_of_bar, cv2.TM_CCOEFF_NORMED)
+    res3 = cv2.matchTemplate(gray, fish, cv2.TM_CCOEFF_NORMED)
+
     _, max_val, _, max_loc = cv2.minMaxLoc(res)
     _, max_val_2, _, max_loc_2 = cv2.minMaxLoc(res2)
+    _, max_val_3, _, max_loc_3 = cv2.minMaxLoc(res3)
 
-    if max_val >= BAR_CONFIDENCE or max_val_2 >= BAR_CONFIDENCE:
-      print(f"Found the top bar at: {max_loc}")
-      print(f"Found the bottom bar at: {max_loc_2}")
-      # return True
-    
+    if max_val >= BAR_CONFIDENCE and max_val_2 >= BAR_CONFIDENCE and max_val_3 >= FISH_CONFIDENCE:
+      top_y = max_loc[1] 
+      btm_y = max_loc_2[1]
+      fish_y = max_loc_3[1]
+
+      if top_y < fish_y < btm_y:
+        print(f"SAFE: Fish ({fish_y}) is inside bar ({top_y} - {btm_y})")
+      else:
+        print(f"WARNING: Fish ({fish_y}) is OUTSIDE!")
+    else:
+      print(f"fishing game not detected")
+
     time.sleep(0.01)
 
 # helper function to determine boxes
@@ -113,7 +125,12 @@ while cast:
   #   pyautogui.mouseUp()
   #   cast = False
 
-  print("watching for bar")
-  if watch_for_bar():
-    print("bar found")
-    cast = False
+  # print("watching for bar")
+  # if watch_for_bar():
+  #   print("bar found")
+  #   cast = False
+
+  # if watch_for_fish():
+  #   cast = False
+
+  watch_for_fish_and_bar()
